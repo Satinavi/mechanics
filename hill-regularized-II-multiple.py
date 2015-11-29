@@ -9,7 +9,7 @@ import numpy
 import sys
 
 #lobal parameters are here
-h = -(1.5*(3.0)**(1.0/3.0)+1.0)
+h = -(1.5*(3.0)**(1.0/3.0)+0.1)
 
 def CreateBoundary(x, h):
         x_ret = []
@@ -83,8 +83,8 @@ def Df(t, var):
             [0,-16*x*px,-8*(x*x+y*y),-16*y*px+8*h-48*y*y,0]]
 
 #TotalEnergy =  1.5*(3)**(1.0/3.0)+1
-TotalTimeSteps = 1000000.0
-TotalTime = 10000.0
+TotalTimeSteps = 10000.0
+TotalTime = 1000.0
 
 x_plot, y_plot = CreateBoundaryNew(-h,10)
 
@@ -125,6 +125,7 @@ tt = numpy.linspace(0,TotalTime,TotalTimeSteps)
 for j in range(len(my_plotx)):   
     init = 0.0, my_plotx[j], 0.0, my_ploty[j], 0.0
     sol11 = odeint(f, init, tt)
+    print(NewEnergy(sol11[0,1],sol11[0,2],sol11[0,3],sol11[0,4]), NewEnergy(sol11[len(sol11[:,1])-1,1],sol11[len(sol11[:,1])-1,2],sol11[len(sol11[:,1])-1,3],sol11[len(sol11[:,1])-1,4]))
     sol1new = []
     sol2new = []  
     for i in range(len(sol11[:,1])):

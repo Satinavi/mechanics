@@ -32,8 +32,8 @@ r0 = 0.0
 
 SolNum = 100
 TotEnerg = 7.0
-TotalTimeSteps = 100000.0
-TotalTime = 1.0
+TotalTimeSteps = 10000.0
+TotalTime = 2.0
 
 def VLevels(theta, phi):
     ret = 0.5*k*k/(A*math.sin(theta)*math.sin(theta) + C*math.cos(theta)*math.cos(theta))

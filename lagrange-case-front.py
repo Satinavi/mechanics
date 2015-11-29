@@ -17,21 +17,21 @@ import time
 # Here we define parameters
 A = 1.0
 B = A
-C = 3.0
+C = 1.5
 a = 0.5
 b = 0.0
 c = 1.0
 
-k = 1.5
+k = 0.0
 
 p0 = 0
 q0 = 0
 r0 = 0.0
 
 SolNum = 100
-TotEnerg = 1.0
+TotEnerg = 0.0
 TotalTimeSteps = 10000.0
-TotalTime = 20.0
+TotalTime = 1.9
 
 def VLevels(theta, phi):
     ret = 0.5*k*k/(A*math.sin(theta)*math.sin(theta) + C*math.cos(theta)*math.cos(theta))
