@@ -83,10 +83,10 @@ def Df(s, var):
             [0,-16*x*px - 48*(y*x**3+x*y**3),-8*(x*x+y*y),-16*y*px+8*h-12*x**4+180*y**4-72*x**2*y**2,0]]
 
 #TotalEnergy =  1.5*(3)**(1.0/3.0)+1
-TotalTimeSteps = 10000.0
+TotalTimeSteps = 1000000.0
 TotalTime = 1000.0
 
-x_plot, y_plot = CreateBoundaryNew(-h,100)
+x_plot, y_plot = CreateBoundaryNew(-h,5)
 
 MaxNumberOfMoons = 100000.0
 
