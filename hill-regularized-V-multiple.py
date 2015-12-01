@@ -27,9 +27,9 @@ def CreateBoundary(x, h):
 def CreateAngleBoundary(nn):
     x_ret = []
     y_ret = []
-    start_ang = 0.01 # rad, to avoid critical cases
-    for i in range(nn):
-        cur_ang = i*2*math.pi/nn+start_ang
+    start_ang = 0.0 # rad, to avoid critical cases
+    for i in range(int(nn)):
+        cur_ang = i*math.pi/nn+start_ang
         r_sol = SolveCubic(1.5*(math.cos(cur_ang))**2, h)
         x_sol = r_sol*math.cos(cur_ang)
         y_sol = r_sol*math.sin(cur_ang)
@@ -39,7 +39,7 @@ def CreateAngleBoundary(nn):
         
         
 def SolveCubic(a,b):
-    eps = 0.00000000000001
+    eps = 0.000000000000001
     doit = True
     r_start = 0.0
     r_cur = 0.0
@@ -53,13 +53,15 @@ def SolveCubic(a,b):
     x1 = r_cur - r_step
     x2 = r_cur
     err = 1000.0
+    #print("OK", a*x1**3  + b*x1 + 1.0, a*x2**3  + b*x2 + 1.0)
     while abs(err) > eps:
         mid = (x1+x2)*0.5
         err = a*(mid)**3 + b*mid + 1.0
         if(err > 0.0):
-            x2 = mid
-        else:
             x1 = mid
+        else:
+            x2 = mid
+    #print(mid)
     return mid
     
 
@@ -124,16 +126,16 @@ def Df(s, var):
 
 #TotalEnergy =  1.5*(3)**(1.0/3.0)+1
 TotalTimeSteps = 1000000.0
-TotalTime = 100.0
+TotalTime = 10000.0
 
-x_plot, y_plot = CreateBoundaryNew(-h,100)
+MaxNumberOfMoons = 10.0
 
-MaxNumberOfMoons = 100000.0
+x_plot, y_plot = CreateAngleBoundary(MaxNumberOfMoons)
+x_plot_temp, y_plot_temp = CreateAngleBoundary(MaxNumberOfMoons)
 
 fig = plt.figure(figsize=(7, 5))
 
 plt.axis('equal')
-x_plot_temp, y_plot_temp = CreateBoundaryNew(-h, MaxNumberOfMoons)
 
 fig.tight_layout()
 
@@ -170,22 +172,37 @@ for j in range(len(my_plotx)):
     t1 = TotalTime
     dt = t1/TotalTimeSteps  
     i = 0
+    fine_sol0 = []
+    fine_sol1 = []
+    fine_sol2 = []
+    fine_sol3 = []
+    fine_sol4 = []
     while r.successful() and r.t <= TotalTime:
         a = r.integrate(r.t+dt)
-        sol11[i,0]=a[0]
-        sol11[i,1]=a[1]
-        sol11[i,2]=a[2]
-        sol11[i,3]=a[3]
-        sol11[i,4]=a[4]
+        fine_sol0.append(a[0])
+        fine_sol1.append(a[1])
+        fine_sol2.append(a[2])
+        fine_sol3.append(a[3])
+        fine_sol4.append(a[4])
+        xx, yy = DirTrans(fine_sol1[i], fine_sol3[i])
+        if(abs(xx) < 0.0005 or abs(yy)< 0.0005):
+            dt = t1/TotalTimeSteps/100.0
+        else:
+            dt = t1/TotalTimeSteps
         i=i+1    
-    print(NewEnergy(sol11[0,1],sol11[0,2],sol11[0,3],sol11[0,4]), NewEnergy(sol11[i-5,1],sol11[i-5,2],sol11[i-5,3],sol11[i-5,4]))
-    print(sol11[i-5,1],sol11[i-5,2],sol11[i-5,3],sol11[i-5,4])
+    print(j, len(my_plotx), NewEnergy(fine_sol1[0],fine_sol2[0],fine_sol3[0],fine_sol4[0]), NewEnergy(fine_sol1[i-5],fine_sol2[i-5],fine_sol3[i-5],fine_sol4[i-5]))
+    #print(j, len(my_plotx), sol11[i-5,1],sol11[i-5,2],sol11[i-5,3],sol11[i-5,4])
     sol1new = []
-    sol2new = []  
-    for i in range(len(sol11[:,1])-5):
-        g = DirTrans(sol11[i,1], sol11[i,3])
+    sol2new = []
+    sol1newinv = []
+    sol2newinv = []
+    for i in range(len(fine_sol1)-5):
+        g = DirTrans(fine_sol1[i], fine_sol3[i])
         sol1new.append(g[0])
         sol2new.append(g[1])
+        sol1newinv.append(-g[0])
+        sol2newinv.append(-g[1])       
     plt.plot(sol1new, sol2new, marker='', linestyle='-', color='r')
+    plt.plot(sol1newinv, sol2newinv, marker='', linestyle='-', color='r')
 plt.scatter(x_plot_temp,y_plot_temp, s=5, facecolors='red', edgecolors='none', alpha=1)
 plt.show()  

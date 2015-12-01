@@ -28,7 +28,7 @@ def CreateAngleBoundary(nn):
     x_ret = []
     y_ret = []
     start_ang = 0.01 # rad, to avoid critical cases
-    for i in range(nn):
+    for i in range(int(nn)):
         cur_ang = i*2*math.pi/nn+start_ang
         r_sol = SolveCubic(1.5*(math.cos(cur_ang))**2, h)
         x_sol = r_sol*math.cos(cur_ang)
@@ -39,7 +39,7 @@ def CreateAngleBoundary(nn):
         
         
 def SolveCubic(a,b):
-    eps = 0.00000000000001
+    eps = 0.000000000000001
     doit = True
     r_start = 0.0
     r_cur = 0.0
@@ -53,13 +53,15 @@ def SolveCubic(a,b):
     x1 = r_cur - r_step
     x2 = r_cur
     err = 1000.0
+    #print("OK", a*x1**3  + b*x1 + 1.0, a*x2**3  + b*x2 + 1.0)
     while abs(err) > eps:
         mid = (x1+x2)*0.5
         err = a*(mid)**3 + b*mid + 1.0
         if(err > 0.0):
-            x2 = mid
-        else:
             x1 = mid
+        else:
+            x2 = mid
+    #print(mid)
     return mid
     
 
@@ -123,17 +125,17 @@ def Df(s, var):
             [0,-16*x*px - 48*(y*x**3+x*y**3),-8*(x*x+y*y),-16*y*px+8*h-12*x**4+180*y**4-72*x**2*y**2,0]]
 
 #TotalEnergy =  1.5*(3)**(1.0/3.0)+1
-TotalTimeSteps = 1000000.0
+TotalTimeSteps = 100000.0
 TotalTime = 100.0
 
-x_plot, y_plot = CreateBoundaryNew(-h,100)
+x_plot, y_plot = CreateAngleBoundary(100.0)
 
-MaxNumberOfMoons = 100000.0
+MaxNumberOfMoons = 100.0
 
 fig = plt.figure(figsize=(7, 5))
 
 plt.axis('equal')
-x_plot_temp, y_plot_temp = CreateBoundaryNew(-h, MaxNumberOfMoons)
+x_plot_temp, y_plot_temp = CreateAngleBoundary(MaxNumberOfMoons)
 
 fig.tight_layout()
 
@@ -178,8 +180,8 @@ for j in range(len(my_plotx)):
         sol11[i,3]=a[3]
         sol11[i,4]=a[4]
         i=i+1    
-    print(NewEnergy(sol11[0,1],sol11[0,2],sol11[0,3],sol11[0,4]), NewEnergy(sol11[i-5,1],sol11[i-5,2],sol11[i-5,3],sol11[i-5,4]))
-    print(sol11[i-5,1],sol11[i-5,2],sol11[i-5,3],sol11[i-5,4])
+    print(j, len(my_plotx), NewEnergy(sol11[0,1],sol11[0,2],sol11[0,3],sol11[0,4]), NewEnergy(sol11[i-5,1],sol11[i-5,2],sol11[i-5,3],sol11[i-5,4]))
+    print(j, len(my_plotx), sol11[i-5,1],sol11[i-5,2],sol11[i-5,3],sol11[i-5,4])
     sol1new = []
     sol2new = []  
     for i in range(len(sol11[:,1])-5):
