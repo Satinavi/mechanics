@@ -20,7 +20,7 @@ import time
 A = 1.0
 B = A
 C = 0.5
-a = 1.0
+a = 2.0
 b = 0.0
 c = 0.0
 
@@ -33,7 +33,7 @@ r0 = 0.0
 SolNum = 100
 TotEnerg = 7.0
 TotalTimeSteps = 10000.0
-TotalTime = 2.0
+TotalTime = 25
 
 def VLevels(theta, phi):
     ret = 0.5*k*k/(A*math.sin(theta)*math.sin(theta) + C*math.cos(theta)*math.cos(theta))
@@ -57,6 +57,25 @@ def SolveEq(phi, a1, b1, h1):
 #    print(fun)
     return c1
 
+
+def dPsi(dPhi, theta):
+    ans = (k - C*dPhi*math.cos(theta))/(A*math.sin(theta)*math.sin(theta)+C*math.cos(theta)*math.cos(theta))
+    return ans
+    
+def pqr(dPhi, dPsi, dTheta, Phi, Theta):
+    p = dPsi*math.sin(Theta)*math.sin(Phi)+dTheta*math.cos(Phi)
+    q = dPsi*math.sin(Theta)*math.cos(Phi)-dTheta*math.sin(Phi)
+    r = dPhi + dPsi*math.cos(Theta)
+    return p, q, r
+    
+def Integrals(x1, x2, x3, x4, x5, x6):
+    nu = a/C
+    I1 = x1**2 + x2**2 + nu*x4 + 0.5*x3**2
+    I2 = (x1*x4 + x2*x5) + 0.5*x3*x6
+    I3 = ((x1**2 - x2**2 - nu*x4)**2+(2*x1*x2-nu*x5)**2)**0.5
+    I4 = x4**2 + x5**2 + x6**2
+    return I1, I2, I3, I4, I1 - 2*I2*I2 - I3
+
 def CalcEn(theta, pt, phi, pp):
     ret = 0.0
 #    print("GGG")
@@ -67,7 +86,6 @@ def CalcEn(theta, pt, phi, pp):
     R0 = -0.5*k*k/div - a*math.sin(theta)*math.sin(phi)-b*math.sin(theta)*math.cos(phi)-c*math.cos(theta)
 #    print("GGG")
     ret = R2-R0
-    print(ret)
     return ret
  
 # Create initial condtions for a given h
@@ -151,7 +169,6 @@ def CreateBoundary(x, h_in):
         x_ret = []
         y_ret = []
         h=-1.0*h_in
-        print(h)
         for q in x:
             if (h - 3.0/2.0*q*q > 0):
                 if(1/(h-3.0/2.0*q*q)**2-q**2 > 0):
@@ -191,18 +208,15 @@ print("+++")
 theta = []
 phi = numpy.linspace(0,2*math.pi,200)
 
-print(phi)
 
 for i in range(len(phi)):
     theta.append(SolveEq(phi[i], 0.0, math.pi, TotEnerg))
-    print("***")
-    print(SolveEq(phi[i], 0.0, math.pi, TotEnerg))
 
 #print(CalcEn(theta[50], 0.0, phi[50], 0.0))
 #print("AAA")
 
 fig = plt.figure(figsize=(7, 5))
-plt.axis('equal')
+#plt.axis('equal')
 
 out1 = []
 out2 = []
@@ -216,6 +230,9 @@ for i in range(len(phi)):
     
 xi, eta = StereographicProj(out1, out2, out3)
 
+plx = []
+ply = []
+
 for j in range(len(theta)):    
     init = theta[j], 0.0, phi[j], 0.0
     t = numpy.linspace(0,TotalTime,TotalTimeSteps)
@@ -223,11 +240,20 @@ for j in range(len(theta)):
     x_out = []
     y_out = []
     x_out = sol[:,0]
+    px_out = sol[:,1]
     y_out = sol[:,2]
+    py_out = sol[:,3]
+    dpsi = dPsi(py_out[1000],x_out[1000])
+    #(dPhi, dPsi, dTheta, Phi, Theta):
+    Omega = pqr(py_out[1000], dpsi, px_out[1000], y_out[1000], x_out[1000])    
+    myGam = TransIntoGamma(y_out[1000], x_out[1000])
+    myI = Integrals(Omega[0], Omega[1], Omega[2], myGam[0], myGam[1], myGam[2])
+    print(myI[4])    
+    plx.append(j)
+    ply.append(myI[4])
     out1a = []
     out2a = []
     out3a = []
-    
     for i in range(len(x_out)):
         g_ret = TransIntoGamma(y_out[i], x_out[i])
         out1a.append(g_ret[0])
@@ -237,11 +263,11 @@ for j in range(len(theta)):
     xi_out = []
     eta_out = []
     xi_out, eta_out = StereographicProj(out1a, out2a, out3a)   
-    plt.plot(xi_out, eta_out, marker='', linestyle='-', color='r')   
+    #plt.plot(xi_out, eta_out, marker='', linestyle='-', color='r')   
 
-plt.plot(xi, eta, marker='', linestyle='-', color='r')
+#plt.plot(xi, eta, marker='', linestyle='-', color='r')
 
-
+plt.plot(plx, ply, marker='', linestyle='-', color='r')
 
 plt.show()
 

@@ -17,22 +17,29 @@ import time
 # Here we define parameters
 A = 1.0
 B = A
-C = 1.5
-a = 0.5
+C = 1.2
+a = 0.0
 b = 0.0
 c = 1.0
 
-k = 0.0
+k = 0.1
+
+x_param = -0.9
+
+
 
 p0 = 0
 q0 = 0
 r0 = 0.0
 
 SolNum = 100
-TotEnerg = 0.0
-TotalTimeSteps = 10000.0
-TotalTime = 1.9
 
+TotEnerg = 0.0
+
+TotEnerg = 0.5*k*k/(A + (C-A)*x_param*x_param) + c*x_param
+
+TotalTimeSteps = 1000.0
+TotalTime = 10
 def VLevels(theta, phi):
     ret = 0.5*k*k/(A*math.sin(theta)*math.sin(theta) + C*math.cos(theta)*math.cos(theta))
     ret = ret + a*math.sin(theta)*math.sin(phi) + b*math.sin(theta)*math.cos(phi) + c*math.cos(theta)
@@ -54,6 +61,17 @@ def SolveEq(phi, a1, b1, h1):
         fun = VLevels(c1,phi)
 #    print(fun)
     return c1
+
+def dPsi(dPhi, theta):
+    ans = (k - C*dPhi*math.cos(theta))/(A*math.sin(theta)*math.sin(theta)+C*math.cos(theta)*math.cos(theta))
+    return ans
+    
+def pqr(dPhi, dPsi, dTheta, Phi, Theta):
+    p = dPsi*math.sin(Theta)*math.sin(Phi)+dTheta*math.cos(Phi)
+    q = dPsi*math.sin(Theta)*math.cos(Phi)-dTheta*math.sin(Phi)
+    r = dPhi + dPsi*math.cos(Theta)
+    return p, q, r
+  
 
 def CalcEn(theta, pt, phi, pp):
     ret = 0.0
@@ -188,7 +206,7 @@ theta = []
 phi = numpy.linspace(0,2*math.pi,200)
 
 for i in range(len(phi)):
-    theta.append(SolveEq(phi[i], 0.0, math.pi, TotEnerg))
+    theta.append(SolveEq(phi[i], 0.5*math.pi, math.pi, TotEnerg))
 
 #print(CalcEn(theta[50], 0.0, phi[50], 0.0))
 #print("AAA")
