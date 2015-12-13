@@ -20,12 +20,11 @@ import time
 A = 1.0
 B = A
 C = 0.5
-a = 2.0
+a = 1.0
 b = 0.0
 c = 0.0
 
-k = 3.0
-
+k = 3
 p0 = 0
 q0 = 0
 r0 = 0.0
@@ -33,7 +32,7 @@ r0 = 0.0
 SolNum = 100
 TotEnerg = 7.0
 TotalTimeSteps = 10000.0
-TotalTime = 25
+TotalTime = 1.0
 
 def VLevels(theta, phi):
     ret = 0.5*k*k/(A*math.sin(theta)*math.sin(theta) + C*math.cos(theta)*math.cos(theta))
@@ -112,7 +111,7 @@ def CreateInitCond2(r_s, h, n):
     return gamma_1_ret, gamma_2_ret, gamma_3_ret
 
 def TransIntoGamma(phi, theta):
-    return math.sin(theta)*math.sin(phi), math.sin(theta)*math.cos(phi), math.cos(theta)
+    return -math.sin(theta)*math.sin(phi), -math.sin(theta)*math.cos(phi), -math.cos(theta)
 
 # (x,y,z) -> (xi, eta)
 def StereographicProj(x, y, z):
@@ -216,7 +215,7 @@ for i in range(len(phi)):
 #print("AAA")
 
 fig = plt.figure(figsize=(7, 5))
-#plt.axis('equal')
+plt.axis('equal')
 
 out1 = []
 out2 = []
@@ -248,7 +247,7 @@ for j in range(len(theta)):
     Omega = pqr(py_out[1000], dpsi, px_out[1000], y_out[1000], x_out[1000])    
     myGam = TransIntoGamma(y_out[1000], x_out[1000])
     myI = Integrals(Omega[0], Omega[1], Omega[2], myGam[0], myGam[1], myGam[2])
-    print(myI[4])    
+    print(VLevels(x_out[1000], y_out[1000]), x_out[0], x_out[100], x_out[1000])    
     plx.append(j)
     ply.append(myI[4])
     out1a = []
@@ -263,12 +262,11 @@ for j in range(len(theta)):
     xi_out = []
     eta_out = []
     xi_out, eta_out = StereographicProj(out1a, out2a, out3a)   
-    #plt.plot(xi_out, eta_out, marker='', linestyle='-', color='r')   
+    plt.plot(xi_out, eta_out, marker='', linestyle='-', color='r')   
 
-#plt.plot(xi, eta, marker='', linestyle='-', color='r')
+plt.plot(xi, eta, marker='', linestyle='-', color='r')
 
-plt.plot(plx, ply, marker='', linestyle='-', color='r')
-
+#plt.plot(plx, ply, marker='', linestyle='-', color='r')
 plt.show()
 
 sys.exit(0)

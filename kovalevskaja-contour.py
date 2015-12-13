@@ -1,3 +1,5 @@
+# Kovalevskaja
+
 import matplotlib.pyplot as plt
 from mpl_toolkits.mplot3d import Axes3D
 from matplotlib.animation import FuncAnimation
@@ -17,31 +19,21 @@ import time
 # Here we define parameters
 A = 1.0
 B = A
-C = 1.2
-a = 0.6
+C = 0.5
+a = 5.0
 b = 0.0
-c = 1.0
+c = 0.0
 
-k = 0.5
-
-x_param = -0.5
-
-
-
+k = 2
 p0 = 0
 q0 = 0
 r0 = 0.0
 
 SolNum = 100
+TotEnerg = 7.0
+TotalTimeSteps = 10000.0
+TotalTime = 100.0
 
-TotEnerg = 0.0
-
-TotEnerg = 0.5*k*k/(A + (C-A)*x_param*x_param) + c*x_param
-
-print(TotEnerg)
-
-TotalTimeSteps = 1000.0
-TotalTime = 10
 def VLevels(theta, phi):
     ret = 0.5*k*k/(A*math.sin(theta)*math.sin(theta) + C*math.cos(theta)*math.cos(theta))
     ret = ret + a*math.sin(theta)*math.sin(phi) + b*math.sin(theta)*math.cos(phi) + c*math.cos(theta)
@@ -64,6 +56,7 @@ def SolveEq(phi, a1, b1, h1):
 #    print(fun)
     return c1
 
+
 def dPsi(dPhi, theta):
     ans = (k - C*dPhi*math.cos(theta))/(A*math.sin(theta)*math.sin(theta)+C*math.cos(theta)*math.cos(theta))
     return ans
@@ -73,7 +66,14 @@ def pqr(dPhi, dPsi, dTheta, Phi, Theta):
     q = dPsi*math.sin(Theta)*math.cos(Phi)-dTheta*math.sin(Phi)
     r = dPhi + dPsi*math.cos(Theta)
     return p, q, r
-  
+    
+def Integrals(x1, x2, x3, x4, x5, x6):
+    nu = a/C
+    I1 = x1**2 + x2**2 + nu*x4 + 0.5*x3**2
+    I2 = (x1*x4 + x2*x5) + 0.5*x3*x6
+    I3 = ((x1**2 - x2**2 - nu*x4)**2+(2*x1*x2-nu*x5)**2)**0.5
+    I4 = x4**2 + x5**2 + x6**2
+    return I1, I2, I3, I4, I1 - 2*I2*I2 - I3
 
 def CalcEn(theta, pt, phi, pp):
     ret = 0.0
@@ -85,7 +85,6 @@ def CalcEn(theta, pt, phi, pp):
     R0 = -0.5*k*k/div - a*math.sin(theta)*math.sin(phi)-b*math.sin(theta)*math.cos(phi)-c*math.cos(theta)
 #    print("GGG")
     ret = R2-R0
-    print(ret)
     return ret
  
 # Create initial condtions for a given h
@@ -169,7 +168,6 @@ def CreateBoundary(x, h_in):
         x_ret = []
         y_ret = []
         h=-1.0*h_in
-        print(h)
         for q in x:
             if (h - 3.0/2.0*q*q > 0):
                 if(1/(h-3.0/2.0*q*q)**2-q**2 > 0):
@@ -204,11 +202,26 @@ def CreateBoundaryNew(h, n):
 
 r_s = [a, b, c]
 
-theta = []
+print("+++")
+
+theta = numpy.linspace(0,math.pi,200)
 phi = numpy.linspace(0,2*math.pi,200)
 
-for i in range(len(phi)):
-    theta.append(SolveEq(phi[i], 0.5*math.pi, math.pi, TotEnerg))
+
+V = numpy.zeros((len(phi), len(theta)))
+for i in range(len(theta)):
+    for j in range(len(phi)):
+        V[j][i] = (VLevels(theta[i], phi[j]))
+
+
+
+plt.figure()
+CS = plt.contourf(theta, phi, V, 20)
+cbar = plt.colorbar(CS)
+plt.show()
+
+
+sys.exit(0)
 
 #print(CalcEn(theta[50], 0.0, phi[50], 0.0))
 #print("AAA")
@@ -228,6 +241,9 @@ for i in range(len(phi)):
     
 xi, eta = StereographicProj(out1, out2, out3)
 
+plx = []
+ply = []
+
 for j in range(len(theta)):    
     init = theta[j], 0.0, phi[j], 0.0
     t = numpy.linspace(0,TotalTime,TotalTimeSteps)
@@ -235,11 +251,20 @@ for j in range(len(theta)):
     x_out = []
     y_out = []
     x_out = sol[:,0]
+    px_out = sol[:,1]
     y_out = sol[:,2]
+    py_out = sol[:,3]
+    dpsi = dPsi(py_out[1000],x_out[1000])
+    #(dPhi, dPsi, dTheta, Phi, Theta):
+    Omega = pqr(py_out[1000], dpsi, px_out[1000], y_out[1000], x_out[1000])    
+    myGam = TransIntoGamma(y_out[1000], x_out[1000])
+    myI = Integrals(Omega[0], Omega[1], Omega[2], myGam[0], myGam[1], myGam[2])
+    print(myI[4])    
+    plx.append(j)
+    ply.append(myI[4])
     out1a = []
     out2a = []
     out3a = []
-    
     for i in range(len(x_out)):
         g_ret = TransIntoGamma(y_out[i], x_out[i])
         out1a.append(g_ret[0])
@@ -249,35 +274,15 @@ for j in range(len(theta)):
     xi_out = []
     eta_out = []
     xi_out, eta_out = StereographicProj(out1a, out2a, out3a)   
-    plt.plot(xi_out, eta_out, marker='', linestyle='-', color='r')   
-    
-#print(CalcEn(sol[0,0],sol[0,1],sol[0,2], sol[0,3]))
-#print("JJJ")
-#print(CalcEn(sol[10,0],sol[10,1],sol[10,2], sol[10,3]))
-#print("HHH")
-#print(CalcEn(sol[5001,0],sol[5001,1],sol[5001,2], sol[5001,3]))
+    #plt.plot(xi_out, eta_out, marker='', linestyle='-', color='r')   
 
+#plt.plot(xi, eta, marker='', linestyle='-', color='r')
 
+#plt.plot(plx, ply, marker='', linestyle='-', color='r')
 
-#plt.plot(t, x_out, marker='', linestyle='-', color='r')
-#
-#
 #plt.show()
-#
+
 #sys.exit(0)
-
-#print(x_out[10], theta[5], y_out[10], phi[5])
-
-
-
-
-plt.plot(xi, eta, marker='', linestyle='-', color='r')
-
-
-
-plt.show()
-
-sys.exit(0)
 
 
 
