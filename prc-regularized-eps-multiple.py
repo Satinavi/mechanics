@@ -8,11 +8,14 @@ import pylab
 import numpy
 import sys
 import math
+import time
 
 #lobal parameters are here
 h = -2.0
 
-mu = 0.33
+ee = 0.2
+
+mu = 0.05
 
 scale = 1.1
 
@@ -71,7 +74,7 @@ def Energy(q1,p1,q2,p2,h):
     return ret
 
 def NewEnergy(xi, pxi, eta, peta):
-    ret = 0.5*(pxi*pxi + peta*peta) - (4 + 4*(xi*xi + eta*eta)*(h) + 6*(xi*xi - eta*eta)*(xi*xi - eta*eta)*(xi*xi + eta*eta))
+    ret = 0.5*(pxi*pxi + peta*peta) - (4*(xi*xi + eta*eta)*(h) + 2*(xi*xi+eta*eta)**3 + 4*(xi*xi+eta*eta)*((1-mu)/((xi*xi-eta*eta+mu)**2+4*xi*xi*eta*eta)**0.5 + (mu)/((xi*xi-eta*eta+mu-1)**2+4*xi*xi*eta*eta)**0.5))
     return ret
 
 def DirTrans(xi, eta):
@@ -89,15 +92,17 @@ def InvTrans(x, y):
     return xi, eta
 
 def f(var, t):
-    x = var[0]
-    px = var[1]
-    y = var[2]
-    py = var[3]
+    s = var[0]
+    xi = var[1]
+    px = var[2]
+    eta = var[3]
+    py = var[4]
+    f0 = 4*(xi*xi+eta*eta)
     f1 = px
-    f2 = 2.0*py + x - (1-mu)*(x+mu)/((x+mu)**2 + y**2)**(1.5) - mu*(x-1+mu)/((x-1+mu)**2+y**2)**(1.5)
+    f2 = 8*(xi*xi+eta*eta)*py + 8*h*xi + 12*xi*(eta**2 + xi**2)**2 + 8*xi*(mu*(4*eta**2*xi**2 + (-eta**2 + mu + xi**2 - 1)**2)**(-0.5) + (-mu + 1)*(4*eta**2*xi**2 + (-eta**2 + mu + xi**2)**2)**(-0.5)) + (4*eta**2 + 4*xi**2)*(mu*(-4.0*eta**2*xi - 2.0*xi*(-eta**2 + mu + xi**2 - 1))*(4*eta**2*xi**2 + (-eta**2 + mu + xi**2 - 1)**2)**(-1.5) + (-mu + 1)*(-4.0*eta**2*xi - 2.0*xi*(-eta**2 + mu + xi**2))*(4*eta**2*xi**2 + (-eta**2 + mu + xi**2)**2)**(-1.5))
     f3 = py
-    f4 = -2.0*px + y - (mu)*(y)/((x-1+mu)**2 + y**2)**(1.5) - (1-mu)*(y)/((x+mu)**2+y**2)**(1.5) 
-    return f1, f2, f3, f4
+    f4 = -8*(xi*xi+eta*eta)*px+ 8*eta*h + 12*eta*(eta**2 + xi**2)**2 + 8*eta*(mu*(4*eta**2*xi**2 + (-eta**2 + mu + xi**2 - 1)**2)**(-0.5) + (-mu + 1)*(4*eta**2*xi**2 + (-eta**2 + mu + xi**2)**2)**(-0.5)) + (4*eta**2 + 4*xi**2)*(mu*(-4.0*eta*xi**2 + 2.0*eta*(-eta**2 + mu + xi**2 - 1))*(4*eta**2*xi**2 + (-eta**2 + mu + xi**2 - 1)**2)**(-1.5) + (-mu + 1)*(-4.0*eta*xi**2 + 2.0*eta*(-eta**2 + mu + xi**2))*(4*eta**2*xi**2 + (-eta**2 + mu + xi**2)**2)**(-1.5))
+    return f0, f1, f2, f3, f4
 
 
 
@@ -114,7 +119,6 @@ def Df(s, var):
             [0,-scale*16*x*px - 48*(y*x**3+x*y**3),-8*(x*x+y*y),-scale*16*y*px+8*h-12*x**4+180*y**4-72*x**2*y**2,0]]
 
 
-
 def CreateAngleBoundary(nn, x0, y0, step):
     x_ret = []
     y_ret = []
@@ -126,6 +130,7 @@ def CreateAngleBoundary(nn, x0, y0, step):
         cur_ang = i*2*math.pi/nn+start_ang
         while find_a_root:
             print(TotEnergy(0,0,x_cur,y_cur), TotEnergy(0,0,x_cur+step*math.cos(cur_ang),y_cur+step*math.sin(cur_ang)), h)
+            #time.sleep(1)
             if( TotEnergy(0,0,x_cur,y_cur) <= h and TotEnergy(0,0,x_cur+step*math.cos(cur_ang),y_cur+step*math.sin(cur_ang)) > h):
                 print("TRYING TO FIND A ROOT")
                 root = FineRoot(x_cur,y_cur,x_cur+step*math.cos(cur_ang),y_cur+step*math.sin(cur_ang))
@@ -138,7 +143,7 @@ def CreateAngleBoundary(nn, x0, y0, step):
 
 
 def FineRoot(x1,y1,x2,y2):
-    epsil = 0.000000000001
+    epsil = 0.000000000000001
     x_mid = 0.5*(x1+x2)
     y_mid = 0.5*(y1+y2)
     print(x_mid, y_mid, TotEnergy(0,0,x1,y1), TotEnergy(0,0,x2,y2))
@@ -159,15 +164,13 @@ def FineRoot(x1,y1,x2,y2):
 
 def TotEnergy(px, py, x, y):
     T = (px**2 + py**2)*0.5
-    V = (x**2 + y**2)*0.5 + (1-mu)/((x+mu)**2 + y**2)**0.5 + mu/((x-1+mu)**2+y**2)**0.5
-    if V > 5:
-        V = 5
+    V = (x**2 + y**2)*0.5 + (1-mu)/((x+mu)**2+y**2)**0.5+(mu)/((x-1+mu)**2+y**2)**0.5
     return T-V
 
 print("HELLO!")
-TotalTimeSteps = 100000.0
-TotalTime = 100.0
-MaxNumberOfMoons = 200.0
+TotalTimeSteps = 1000000.0
+TotalTime = 1000.0
+MaxNumberOfMoons = 20.0
 
 #delta = 0.033
 #x = np.arange(-2.0, 2.0, delta)
@@ -187,7 +190,15 @@ MaxNumberOfMoons = 200.0
 
 print("HELLO!")
 
-x_plot_temp, y_plot_temp = CreateAngleBoundary(MaxNumberOfMoons, -mu, 0.001, 0.05)
+x_plot_temp, y_plot_temp = CreateAngleBoundary(MaxNumberOfMoons, 0.0, 0.001, 0.05)
+
+xi_plot_temp = []
+eta_plot_temp = []
+
+for j in range(len(x_plot_temp)):
+    xe = InvTrans(x_plot_temp[j], y_plot_temp[j])
+    xi_plot_temp.append(xe[0])
+    eta_plot_temp.append(xe[1])
 
 fig = plt.figure(figsize=(7, 5))
 
@@ -199,14 +210,20 @@ plt.scatter(x_plot_temp,y_plot_temp, s=5, facecolors='red', edgecolors='none', a
 
 for j in range(len(x_plot_temp)):    
     print(j, len(x_plot_temp))
-    init = x_plot_temp[j], 0.0, y_plot_temp[j], 0.0
+    init = 0.0, xi_plot_temp[j], 0.0, eta_plot_temp[j], 0.0
     t = numpy.linspace(0,TotalTime,TotalTimeSteps)
     sol = odeint(f, init, t)
-    x_out = sol[:,0]
-    y_out = sol[:,2]
-    print(TotEnergy(sol[TotalTimeSteps-1,1],sol[TotalTimeSteps-1,3],x_out[TotalTimeSteps-1],y_out[TotalTimeSteps-1]))
+    xi_out = sol[:,1]
+    eta_out = sol[:,3]
+    print(NewEnergy(sol[TotalTimeSteps-5,1], sol[TotalTimeSteps-5,2], sol[TotalTimeSteps-5,3], sol[TotalTimeSteps-5,4]))
+    print(NewEnergy(sol[5,1], sol[5,2], sol[5,3], sol[5,4]))    
+    x_out = []
+    y_out = []
+    for jj in range(len(t)):
+        x_out.append(DirTrans(xi_out[jj], eta_out[jj])[0])
+        y_out.append(DirTrans(xi_out[jj], eta_out[jj])[1])
     plt.plot(x_out, y_out, marker='', linestyle='-', color='r')   
-
+    
 plt.show()
 
 sys.exit(0)

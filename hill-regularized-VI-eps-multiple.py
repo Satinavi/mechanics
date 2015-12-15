@@ -10,9 +10,7 @@ import sys
 import math
 
 #lobal parameters are here
-h = -2.0
-
-mu = 0.33
+h = -(1.5*(3.0)**(1.0/3.0)+1.0)
 
 scale = 1.1
 
@@ -30,7 +28,21 @@ def CreateBoundary(x, h):
                 y_ret.append(-(1/(h-3.0/2.0*q*q)**2-q**2)**(0.5))
     return x_ret, y_ret
 
-
+def CreateAngleBoundary(nn, add_ang):
+    x_ret = []
+    y_ret = []
+    start_ang = math.pi*0.0 # rad, to avoid critical cases
+    for i in range(int(nn)):
+        cur_ang = i*math.pi/nn+start_ang
+        if(add_ang):
+            ang_glob.append(cur_ang)
+        r_sol = SolveCubic(1.5*(math.cos(cur_ang))**2, h)
+        x_sol = r_sol*math.cos(cur_ang)
+        y_sol = r_sol*math.sin(cur_ang)
+        x_ret.append(x_sol)
+        y_ret.append(y_sol)
+    return x_ret, y_ret
+        
         
 def SolveCubic(a,b):
     eps = 0.000000000000001
@@ -88,16 +100,21 @@ def InvTrans(x, y):
         eta = -b**0.5
     return xi, eta
 
-def f(var, t):
-    x = var[0]
-    px = var[1]
-    y = var[2]
-    py = var[3]
-    f1 = px
-    f2 = 2.0*py + x - (1-mu)*(x+mu)/((x+mu)**2 + y**2)**(1.5) - mu*(x-1+mu)/((x-1+mu)**2+y**2)**(1.5)
-    f3 = py
-    f4 = -2.0*px + y - (mu)*(y)/((x-1+mu)**2 + y**2)**(1.5) - (1-mu)*(y)/((x+mu)**2+y**2)**(1.5) 
-    return f1, f2, f3, f4
+def f(s, var):
+    t = var[0]
+    x = var[1]
+    px = var[2]
+    y = var[3]
+    py = var[4]
+    f1 = 4.0*(x*x + y*y)
+    f2 = px
+#    f3 = 8.0*(x*x + y*y)*py + 8.0*x*h + 24.0*x*x*x
+    f3 = 8.0*(x*x + y*y)*scale*py + 8.0*x*h + 12*x*(x*x-y*y)**2.0 + 24.0*x*(x**4-y**4)
+    f4 = py
+#    f5 = -8.0*(x*x+y*y)*px + 8.0*y*h - 24.0*y*y*y
+    f5 = -8.0*(x*x+y*y)*scale*px + 8.0*y*h + 12*y*(x*x-y*y)**2.0 - 24.0*y*(x**4-y**4)
+    
+    return [f1, f2, f3, f4, f5]
 
 
 
@@ -113,104 +130,11 @@ def Df(s, var):
             [0,0,0,0,1],
             [0,-scale*16*x*px - 48*(y*x**3+x*y**3),-8*(x*x+y*y),-scale*16*y*px+8*h-12*x**4+180*y**4-72*x**2*y**2,0]]
 
-
-
-def CreateAngleBoundary(nn, x0, y0, step):
-    x_ret = []
-    y_ret = []
-    start_ang = 0.0
-    for i in range(int(nn)):
-        find_a_root = True
-        x_cur = x0
-        y_cur = y0
-        cur_ang = i*2*math.pi/nn+start_ang
-        while find_a_root:
-            print(TotEnergy(0,0,x_cur,y_cur), TotEnergy(0,0,x_cur+step*math.cos(cur_ang),y_cur+step*math.sin(cur_ang)), h)
-            if( TotEnergy(0,0,x_cur,y_cur) <= h and TotEnergy(0,0,x_cur+step*math.cos(cur_ang),y_cur+step*math.sin(cur_ang)) > h):
-                print("TRYING TO FIND A ROOT")
-                root = FineRoot(x_cur,y_cur,x_cur+step*math.cos(cur_ang),y_cur+step*math.sin(cur_ang))
-                x_ret.append(root[0])
-                y_ret.append(root[1])
-                find_a_root = False
-            x_cur = x_cur+step*math.cos(cur_ang)
-            y_cur = y_cur+step*math.sin(cur_ang)
-    return x_ret, y_ret
-
-
-def FineRoot(x1,y1,x2,y2):
-    epsil = 0.000000000001
-    x_mid = 0.5*(x1+x2)
-    y_mid = 0.5*(y1+y2)
-    print(x_mid, y_mid, TotEnergy(0,0,x1,y1), TotEnergy(0,0,x2,y2))
-    while (abs(TotEnergy(0,0,x_mid,y_mid)-h)>epsil):
-#        print(abs(TotEnergy(0,0,x_mid,y_mid)), epsil)
-        if( TotEnergy(0,0,x_mid,y_mid) < h):
-            x1 = 0.5*(x1+x2)
-            y1 = 0.5*(y1+y2)
-#            print("A")
-        else:
-            x2 = 0.5*(x1+x2)
-            y2 = 0.5*(y1+y2)
-#            print("B")
-        x_mid = 0.5*(x1+x2)
-        y_mid = 0.5*(y1+y2)
-    print(x_mid, y_mid, abs(TotEnergy(0,0,x_mid,y_mid)))
-    return x_mid, y_mid
-
-def TotEnergy(px, py, x, y):
-    T = (px**2 + py**2)*0.5
-    V = (x**2 + y**2)*0.5 + (1-mu)/((x+mu)**2 + y**2)**0.5 + mu/((x-1+mu)**2+y**2)**0.5
-    if V > 5:
-        V = 5
-    return T-V
-
-print("HELLO!")
+#TotalEnergy =  1.5*(3)**(1.0/3.0)+1
 TotalTimeSteps = 100000.0
-TotalTime = 100.0
-MaxNumberOfMoons = 200.0
+TotalTime = 1000.0
 
-#delta = 0.033
-#x = np.arange(-2.0, 2.0, delta)
-#y = np.arange(-2.0, 2.0, delta)
-#V = numpy.zeros((len(x), len(y)))
-#for xx in range(len(x)):
-#    for yy in range(len(y)):
-#        V[xx][yy] = TotEnergy(0,0,x[xx],y[yy])
-#
-#plt.figure()
-#CS = plt.contourf(x, y, V, 50)
-#cbar = plt.colorbar(CS)
-#plt.show()
-#
-#sys.exit(0)
-
-
-print("HELLO!")
-
-x_plot_temp, y_plot_temp = CreateAngleBoundary(MaxNumberOfMoons, -mu, 0.001, 0.05)
-
-fig = plt.figure(figsize=(7, 5))
-
-plt.axis('equal')
-
-fig.tight_layout()
-
-plt.scatter(x_plot_temp,y_plot_temp, s=5, facecolors='red', edgecolors='none', alpha=1)
-
-for j in range(len(x_plot_temp)):    
-    print(j, len(x_plot_temp))
-    init = x_plot_temp[j], 0.0, y_plot_temp[j], 0.0
-    t = numpy.linspace(0,TotalTime,TotalTimeSteps)
-    sol = odeint(f, init, t)
-    x_out = sol[:,0]
-    y_out = sol[:,2]
-    print(TotEnergy(sol[TotalTimeSteps-1,1],sol[TotalTimeSteps-1,3],x_out[TotalTimeSteps-1],y_out[TotalTimeSteps-1]))
-    plt.plot(x_out, y_out, marker='', linestyle='-', color='r')   
-
-plt.show()
-
-sys.exit(0)
-
+MaxNumberOfMoons = 50.0
 
 x_plot, y_plot = CreateAngleBoundary(MaxNumberOfMoons, True)
 x_plot_temp, y_plot_temp = CreateAngleBoundary(MaxNumberOfMoons, False)
@@ -231,8 +155,6 @@ fig.tight_layout()
 #print(Energy(x_plot[50],0.0,y_plot[50],0.0,-h))
 #print(Energy(x_plot[150],0.0,y_plot[150],0.0,-h))
 #print(Energy(x_plot[250],0.0,y_plot[250],0.0,-h))
-
-
 
 my_plotx = []
 my_ploty = []
