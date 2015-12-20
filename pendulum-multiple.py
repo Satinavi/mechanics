@@ -11,6 +11,10 @@ import math
 import time
 
 #lobal parameters are here
+r_0 = 1.001
+omega=3.1
+kappa = 1.0
+
 h = -2.0
 
 ee = 0.2
@@ -21,185 +25,91 @@ scale = 1.1
 
 ang_glob = []
 
-def CreateBoundary(x, h):
-    x_ret = []
-    y_ret = []
-    for q in x:
-        if (h - 3.0/2.0*q*q > 0):
-            if(1/(h-3.0/2.0*q*q)**2-q**2 > 0):
-                x_ret.append(q)
-                y_ret.append((1.0/(h-3.0/2.0*q*q)**2-q**2)**(0.5))
-                x_ret.append(q)
-                y_ret.append(-(1/(h-3.0/2.0*q*q)**2-q**2)**(0.5))
-    return x_ret, y_ret
+#def Beta(r):
+#    if(r<=1):
+#        return 0.0
+#    if(r>1 and r <2.0 ):
+#        return omega*(3*(r-1)**2-2*(r-1)**3-1)
+#    if(r>=2.0):
+#        return omega
+#
+#def DBetaDr(r):
+#    if(r<=1):
+#        return 0.0
+#    if(r>1 and r <2.0 ):
+#        return omega*6*(r-1)*(2-r)
+#    if(r>=2.0):
+#        return 0.0
+#    return 0.0
+
+def Beta(r):
+    if(r<=0):
+        return -omega
+    if(r<=1):
+        return (3*r**2-2*r**3-1)*omega
+    if(r>1):
+        return 0.0
+
+def DBetaDr(r):
+    if(r<=0):
+        return 0.0
+    if(r<=1):
+        return (6*r-6*r**2)*omega
+    if(r>1):
+        return 0.0
+
+def CreateBoundary(N):
+    r_ret = []
+    phi_ret = []
+    for i in range(int(N)):
+        r_ret.append(r_0)
+        phi_ret.append(i*2*math.pi/N)
+    return r_ret, phi_ret    
+
+def ConvertToXY(r_in, phi_in):
+    x_out = []
+    y_out = []
+    for i in range(len(r_in)):
+        x_out.append(r_in[i]*math.cos(phi_in[i]))
+        y_out.append(r_in[i]*math.sin(phi_in[i]))
+    return x_out, y_out
+
+def f2(var, t):
+    r = var[0]
+    dr = var[1]
+    beta0 = Beta(r_0)
+    f1 = dr
+    f2 = (r*Beta(r)*Beta(r)+beta0**2*r_0**4/r**3 - 2*Beta(r)*beta0*r_0**2/r)-r + (-Beta(r)+beta0*r_0**2/r**2)*(2*r*Beta(r)+r**2*DBetaDr(r))
+    return f1, f2
 
 
-        
-def SolveCubic(a,b):
-    eps = 0.000000000000001
-    doit = True
-    r_start = 0.0
-    r_cur = 0.0
-    r_step = 0.00001
-    j = 0
-    while doit:
-        r_cur = r_start + j*r_step
-        if(a*r_cur**3  + b*r_cur + 1.0 < 0):
-            doit = False
-        j=j+1
-    x1 = r_cur - r_step
-    x2 = r_cur
-    err = 1000.0
-    #print("OK", a*x1**3  + b*x1 + 1.0, a*x2**3  + b*x2 + 1.0)
-    while abs(err) > eps:
-        mid = (x1+x2)*0.5
-        err = a*(mid)**3 + b*mid + 1.0
-        if(err > 0.0):
-            x1 = mid
-        else:
-            x2 = mid
-    #print(mid)
-    return mid
-    
-
-def CreateBoundaryNew(h, n):
-    coeff = [1.5,0.0, -h, 1.0]
-    a = np.roots(coeff)
-    x = numpy.linspace(-max(a)*0.999999,max(a)*0.999999,n)
-    x_ret, y_ret = CreateBoundary(x,h)
-    return x_ret, y_ret
-    
-def Energy(q1,p1,q2,p2,h):
-    ret = h + 0.5*(p1**2 + p2**2) - 1.5*q1**2 - (q1**2 + q2**2)**(-0.5)
-    return ret
-
-def NewEnergy(xi, pxi, eta, peta):
-    ret = 0.5*(pxi*pxi + peta*peta) - (4.0*(xi*xi + eta*eta)*(h) + 2.0*(xi*xi+eta*eta)*((xi*xi-eta*eta - mu)**2+4.0*xi*xi*eta*eta) + 4.0*(1.0-mu) + 4.0*(xi*xi+eta*eta)*mu/((xi**2-eta**2-1)**2+4.0*xi*xi*eta*eta)**0.5)
-    return ret
-
-def DirTrans(xi, eta):
-    return xi*xi - eta*eta - mu, 2*xi*eta
-
-def InvTrans(x, y):
-    x = x + mu
-    a = 0.5*(x + (x*x + y*y)**0.5)
-    b = 0.5*(-x + (x*x + y*y)**0.5)
-    if(y<=0.0):
-        xi = -a**0.5
-        eta = b**0.5
-    if(y>0.0):
-        xi = -a**0.5
-        eta = -b**0.5
-    return xi, eta
+def f1(var, t):
+    r = var[0]
+    dr = var[1]
+    f1 = dr
+    f2 = r*Beta(r)*Beta(r)-r-r**2*Beta(r)*DBetaDr(r)-2*r*Beta(r)*Beta(r)
+    return f1, f2
 
 def f(var, t):
-    s = var[0]
-    xi = var[1]
-    px = var[2]
-    eta = var[3]
-    py = var[4]
-    f0 = 4*(xi*xi+eta*eta)
-    f1 = px
-    f2 = 8*(xi*xi+eta*eta)*py + 8.0*h*xi + 8.0*mu*xi*(4.0*eta**2*xi**2 + (-eta**2 + xi**2 - 1)**2)**(-0.5) + mu*(4.0*eta**2 + 4.0*xi**2)*(-4.0*eta**2*xi - 2.0*xi*(-eta**2 + xi**2 - 1))*(4.0*eta**2*xi**2 + (-eta**2 + xi**2 - 1)**2)**(-1.5) + 4.0*xi*(4.0*eta**2*xi**2 + (-eta**2 - mu + xi**2)**2) + (2.0*eta**2 + 2.0*xi**2)*(8.0*eta**2*xi + 4*xi*(-eta**2 - mu + xi**2))
-    f3 = py
-    f4 = -8*(xi*xi+eta*eta)*px+ 8.0*eta*h + 8.0*eta*mu*(4.0*eta**2*xi**2 + (-eta**2 + xi**2 - 1)**2)**(-0.5) + 4.0*eta*(4.0*eta**2*xi**2 + (-eta**2 - mu + xi**2)**2) + mu*(4.0*eta**2 + 4.0*xi**2)*(-4.0*eta*xi**2 + 2.0*eta*(-eta**2 + xi**2 - 1))*(4.0*eta**2*xi**2 + (-eta**2 + xi**2 - 1)**2)**(-1.5) + (2.0*eta**2 + 2.0*xi**2)*(8.0*eta*xi**2 - 4*eta*(-eta**2 - mu + xi**2))
-    return f0, f1, f2, f3, f4
+    r = var[0]
+    pr = var[1]
+    ph = var[2]
+    pph = var[3]
+    f1 = pr
+    f2 = r*pph**2 - kappa*r + 2*r*Beta(r)*pph + DBetaDr(r)*r**2*pph
+    f3 = pph
+    f4 = -2.0/r*pr*pph - DBetaDr(r)*pr - 2.0*Beta(r)*pr/r    
+    return f1, f2, f3, f4
 
 
-
-def Df(s, var):
-    t = var[0]
-    x = var[1]
-    px = var[2]
-    y = var[3]
-    py = var[4]
-    return [[0,8.0,0,8.0,0],
-            [0,0,1.0,0,0],
-            [0,scale*16.0*py*x+8.0*h+180*x**4-12*y**4-72*x**2*y**2,0,scale*16*y*py - 48*(x*y**3+x**3*y),8*(x*x+y*y)],
-            [0,0,0,0,1],
-            [0,-scale*16*x*px - 48*(y*x**3+x*y**3),-8*(x*x+y*y),-scale*16*y*px+8*h-12*x**4+180*y**4-72*x**2*y**2,0]]
-
-
-def CreateAngleBoundary(nn, x0, y0, step):
-    x_ret = []
-    y_ret = []
-    start_ang = 0.0
-    for i in range(int(nn)):
-        find_a_root = True
-        x_cur = x0
-        y_cur = y0
-        cur_ang = i*2*math.pi/nn+start_ang
-        while find_a_root:
-            print(TotEnergy(0,0,x_cur,y_cur), TotEnergy(0,0,x_cur+step*math.cos(cur_ang),y_cur+step*math.sin(cur_ang)), h)
-            #time.sleep(1)
-            if( TotEnergy(0,0,x_cur,y_cur) <= h and TotEnergy(0,0,x_cur+step*math.cos(cur_ang),y_cur+step*math.sin(cur_ang)) > h):
-                print("TRYING TO FIND A ROOT")
-                root = FineRoot(x_cur,y_cur,x_cur+step*math.cos(cur_ang),y_cur+step*math.sin(cur_ang))
-                x_ret.append(root[0])
-                y_ret.append(root[1])
-                find_a_root = False
-            x_cur = x_cur+step*math.cos(cur_ang)
-            y_cur = y_cur+step*math.sin(cur_ang)
-    return x_ret, y_ret
-
-
-def FineRoot(x1,y1,x2,y2):
-    epsil = 0.000000000000001
-    x_mid = 0.5*(x1+x2)
-    y_mid = 0.5*(y1+y2)
-    print(x_mid, y_mid, TotEnergy(0,0,x1,y1), TotEnergy(0,0,x2,y2))
-    while (abs(TotEnergy(0,0,x_mid,y_mid)-h)>epsil):
-#        print(abs(TotEnergy(0,0,x_mid,y_mid)), epsil)
-        if( TotEnergy(0,0,x_mid,y_mid) < h):
-            x1 = 0.5*(x1+x2)
-            y1 = 0.5*(y1+y2)
-#            print("A")
-        else:
-            x2 = 0.5*(x1+x2)
-            y2 = 0.5*(y1+y2)
-#            print("B")
-        x_mid = 0.5*(x1+x2)
-        y_mid = 0.5*(y1+y2)
-    print(x_mid, y_mid, abs(TotEnergy(0,0,x_mid,y_mid)))
-    return x_mid, y_mid
-
-def TotEnergy(px, py, x, y):
-    T = (px**2 + py**2)*0.5
-    V = (x**2 + y**2)*0.5 + (1-mu)/((x+mu)**2+y**2)**0.5+(mu)/((x-1+mu)**2+y**2)**0.5
-    return T-V
-
-print("HELLO!")
-TotalTimeSteps = 10000.0
-TotalTime = 0.33
-MaxNumberOfMoons = 100.0
-
-#delta = 0.033
-#x = np.arange(-2.0, 2.0, delta)
-#y = np.arange(-2.0, 2.0, delta)
-#V = numpy.zeros((len(x), len(y)))
-#for xx in range(len(x)):
-#    for yy in range(len(y)):
-#        V[xx][yy] = TotEnergy(0,0,x[xx],y[yy])
-#
-#plt.figure()
-#CS = plt.contourf(x, y, V, 50)
-#cbar = plt.colorbar(CS)
-#plt.show()
-#
-#sys.exit(0)
 
 
 print("HELLO!")
+TotalTimeSteps = 100000.0
+TotalTime = 2
+MaxNumberOfMoons = 10.0
 
-x_plot_temp, y_plot_temp = CreateAngleBoundary(MaxNumberOfMoons, 0.0, 0.001, 0.05)
-
-xi_plot_temp = []
-eta_plot_temp = []
-
-for j in range(len(x_plot_temp)):
-    xe = InvTrans(x_plot_temp[j], y_plot_temp[j])
-    xi_plot_temp.append(xe[0])
-    eta_plot_temp.append(xe[1])
+print((r[j]*Beta(r[j])*Beta(r[j])+beta0**2*r_0**4/r[j]**3 - 2*Beta(r[j])*beta0*r_0**2/r[j])-r[j] + (-Beta(r[j])+beta0*r_0**2/r[j]**2)*(2*r[j]*Beta(r[j])+r[j]**2*DBetaDr(r[j])))
 
 fig = plt.figure(figsize=(7, 5))
 
@@ -207,28 +117,62 @@ plt.axis('equal')
 
 fig.tight_layout()
 
+r = numpy.linspace(0.000000000,r_0,TotalTimeSteps)
+fr = []
+beta0 = Beta(r_0)
+print((r[0]*Beta(r[0])*Beta(r[0])+beta0**2*r_0**4/r[0]**3 - 2*Beta(r[0])*beta0*r_0**2/r[0])-r[0] + (-Beta(r[0])+beta0*r_0**2/r[0]**2)*(2*r[0]*Beta(r[0])+r[0]**2*DBetaDr(r[0])))
+
+for j in range(len(r)):
+    fr.append((r[j]*Beta(r[j])*Beta(r[j])+beta0**2*r_0**4/r[j]**3 - 2*Beta(r[j])*beta0*r_0**2/r[j])-r[j] + (-Beta(r[j])+beta0*r_0**2/r[j]**2)*(2*r[j]*Beta(r[j])+r[j]**2*DBetaDr(r[j])))
+
+plt.plot(r, fr, marker='', linestyle='-', color='r')  
+
+plt.show()
+#
+sys.exit(0)
+
+
+print("HELLO!")
+
+r_plot_temp, phi_plot_temp = CreateBoundary(MaxNumberOfMoons)
+
+fig = plt.figure(figsize=(7, 5))
+
+plt.axis('equal')
+
+
+
+fig.tight_layout()
+
+
+init = r_0, 0.0
+
+t = numpy.linspace(0,TotalTime,TotalTimeSteps)
+
+sol = odeint(f2, init, t)
+r_out = sol[:,0]
+dr_out = sol[:,1] 
+plt.plot(r_out, dr_out, marker='', linestyle='-', color='r')  
+
+plt.show()
+#
+sys.exit(0)
+
+x_plot_temp, y_plot_temp = ConvertToXY(r_plot_temp, phi_plot_temp)
+
 plt.scatter(x_plot_temp,y_plot_temp, s=5, facecolors='red', edgecolors='none', alpha=1)
 
-fff = InvTrans(0.123, -0.7)
-
-print(DirTrans(fff[0], fff[1]))
 
 
-
-for j in range(len(x_plot_temp)):    
-    print(j, len(x_plot_temp))
-    init = 0.0, xi_plot_temp[j], 0.0, eta_plot_temp[j], 0.0
+for j in range(len(r_plot_temp)):    
+    init = r_plot_temp[j], 0.0, phi_plot_temp[j], 0.0
     t = numpy.linspace(0,TotalTime,TotalTimeSteps)
     sol = odeint(f, init, t)
-    xi_out = sol[:,1]
-    eta_out = sol[:,3]
-    print(NewEnergy(sol[TotalTimeSteps-5,1], sol[TotalTimeSteps-5,2], sol[TotalTimeSteps-5,3], sol[TotalTimeSteps-5,4]))
-    print(NewEnergy(sol[5,1], sol[5,2], sol[5,3], sol[5,4]))    
+    rr_out = sol[:,0]
+    phi_out = sol[:,2] 
     x_out = []
     y_out = []
-    for jj in range(len(t)):
-        x_out.append(DirTrans(xi_out[jj], eta_out[jj])[0])
-        y_out.append(DirTrans(xi_out[jj], eta_out[jj])[1])
+    x_out, y_out  = ConvertToXY(rr_out, phi_out)
     plt.plot(x_out, y_out, marker='', linestyle='-', color='r')   
     
 plt.show()
