@@ -13,8 +13,7 @@ import time
 #lobal parameters are here
 h = -(1.5*(3.0)**(1.0/3.0)+0.1)
 
-ee = 0.2
-
+ee = 0.33
 mu = 0.33
 
 scale = 1.1
@@ -169,8 +168,8 @@ def TotEnergy(px, py, x, y):
 
 print("HELLO!")
 TotalTimeSteps = 100000.0
-TotalTime = 1.0
-MaxNumberOfMoons = 20.0
+TotalTime = 109.0
+MaxNumberOfMoons = 100.0
 
 #delta = 0.033
 #x = np.arange(-2.0, 2.0, delta)
