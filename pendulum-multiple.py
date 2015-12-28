@@ -11,8 +11,8 @@ import math
 import time
 
 #lobal parameters are here
-r_0 = 1.001
-omega=3.1
+r_0 = 1.01
+omega=0.7
 kappa = 1.0
 
 h = -2.0
@@ -29,7 +29,7 @@ ang_glob = []
 #    if(r<=1):
 #        return 0.0
 #    if(r>1 and r <2.0 ):
-#        return omega*(3*(r-1)**2-2*(r-1)**3-1)
+#        return omega*(3*(r-1)**2-2*(r-1)**3)
 #    if(r>=2.0):
 #        return omega
 #
@@ -106,10 +106,9 @@ def f(var, t):
 
 print("HELLO!")
 TotalTimeSteps = 100000.0
-TotalTime = 2
+TotalTime = 10
 MaxNumberOfMoons = 10.0
 
-print((r[j]*Beta(r[j])*Beta(r[j])+beta0**2*r_0**4/r[j]**3 - 2*Beta(r[j])*beta0*r_0**2/r[j])-r[j] + (-Beta(r[j])+beta0*r_0**2/r[j]**2)*(2*r[j]*Beta(r[j])+r[j]**2*DBetaDr(r[j])))
 
 fig = plt.figure(figsize=(7, 5))
 
@@ -117,19 +116,40 @@ plt.axis('equal')
 
 fig.tight_layout()
 
-r = numpy.linspace(0.000000000,r_0,TotalTimeSteps)
+r = numpy.linspace(-1.0,2.0,TotalTimeSteps)
 fr = []
-beta0 = Beta(r_0)
-print((r[0]*Beta(r[0])*Beta(r[0])+beta0**2*r_0**4/r[0]**3 - 2*Beta(r[0])*beta0*r_0**2/r[0])-r[0] + (-Beta(r[0])+beta0*r_0**2/r[0]**2)*(2*r[0]*Beta(r[0])+r[0]**2*DBetaDr(r[0])))
 
 for j in range(len(r)):
-    fr.append((r[j]*Beta(r[j])*Beta(r[j])+beta0**2*r_0**4/r[j]**3 - 2*Beta(r[j])*beta0*r_0**2/r[j])-r[j] + (-Beta(r[j])+beta0*r_0**2/r[j]**2)*(2*r[j]*Beta(r[j])+r[j]**2*DBetaDr(r[j])))
+    fr.append(Beta(r[j]))
 
-plt.plot(r, fr, marker='', linestyle='-', color='r')  
+plt.plot(r, fr, marker='', linestyle='-', color='r',linewidth=3)  
 
 plt.show()
 #
 sys.exit(0)
+#
+#
+#print((r[j]*Beta(r[j])*Beta(r[j])+beta0**2*r_0**4/r[j]**3 - 2*Beta(r[j])*beta0*r_0**2/r[j])-r[j] + (-Beta(r[j])+beta0*r_0**2/r[j]**2)*(2*r[j]*Beta(r[j])+r[j]**2*DBetaDr(r[j])))
+#
+#fig = plt.figure(figsize=(7, 5))
+#
+#plt.axis('equal')
+#
+#fig.tight_layout()
+#
+#r = numpy.linspace(0.000000000,r_0,TotalTimeSteps)
+#fr = []
+#beta0 = Beta(r_0)
+#print((r[0]*Beta(r[0])*Beta(r[0])+beta0**2*r_0**4/r[0]**3 - 2*Beta(r[0])*beta0*r_0**2/r[0])-r[0] + (-Beta(r[0])+beta0*r_0**2/r[0]**2)*(2*r[0]*Beta(r[0])+r[0]**2*DBetaDr(r[0])))
+#
+#for j in range(len(r)):
+#    fr.append((r[j]*Beta(r[j])*Beta(r[j])+beta0**2*r_0**4/r[j]**3 - 2*Beta(r[j])*beta0*r_0**2/r[j])-r[j] + (-Beta(r[j])+beta0*r_0**2/r[j]**2)*(2*r[j]*Beta(r[j])+r[j]**2*DBetaDr(r[j])))
+#
+#plt.plot(r, fr, marker='', linestyle='-', color='r')  
+#
+#plt.show()
+##
+#sys.exit(0)
 
 
 print("HELLO!")

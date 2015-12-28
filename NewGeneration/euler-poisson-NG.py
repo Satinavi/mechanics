@@ -1,5 +1,3 @@
-# Kovalevskaja
-
 import matplotlib.pyplot as plt
 from mpl_toolkits.mplot3d import Axes3D
 from matplotlib.animation import FuncAnimation
@@ -10,7 +8,6 @@ import sys
 import math
 import pylab
 import numpy
-import time
 
 # Parameters: A, B, C, a, b, c, h
 # We assume r_s to be (0, 0, c)
@@ -19,20 +16,29 @@ import time
 # Here we define parameters
 A = 1.0
 B = A
-C = 3.0
-a = 0.5
+C = 1.2
+a = 0.1
 b = 0.0
-c = 0.0
+c = 1.0
 
-k = 0
+k = 0.5
+
+x_param = -0.5
+
 p0 = 0
 q0 = 0
 r0 = 0.0
 
 SolNum = 100
+
 TotEnerg = 0.0
-TotalTimeSteps = 10000.0
-TotalTime = 1.0
+
+TotEnerg = 0.5*k*k/(A + (C-A)*x_param*x_param) + c*x_param
+
+print(TotEnerg)
+
+TotalTimeSteps = 100000.0
+TotalTime = 1000
 
 def VLevels(theta, phi):
     ret = 0.5*k*k/(A*math.sin(theta)*math.sin(theta) + C*math.cos(theta)*math.cos(theta))
@@ -56,37 +62,6 @@ def SolveEq(phi, a1, b1, h1):
 #    print(fun)
     return c1
 
-
-def dPsi(dPhi, theta):
-    ans = (k - C*dPhi*math.cos(theta))/(A*math.sin(theta)*math.sin(theta)+C*math.cos(theta)*math.cos(theta))
-    return ans
-    
-def pqr(dPhi, dPsi, dTheta, Phi, Theta):
-    p = dPsi*math.sin(Theta)*math.sin(Phi)+dTheta*math.cos(Phi)
-    q = dPsi*math.sin(Theta)*math.cos(Phi)-dTheta*math.sin(Phi)
-    r = dPhi + dPsi*math.cos(Theta)
-    return p, q, r
-    
-def Integrals(x1, x2, x3, x4, x5, x6):
-    nu = a/C
-    I1 = x1**2 + x2**2 + nu*x4 + 0.5*x3**2
-    I2 = (x1*x4 + x2*x5) + 0.5*x3*x6
-    I3 = ((x1**2 - x2**2 - nu*x4)**2+(2*x1*x2-nu*x5)**2)**0.5
-    I4 = x4**2 + x5**2 + x6**2
-    return I1, I2, I3, I4, I1 - 2*I2*I2 - I3
-
-def CalcEn(theta, pt, phi, pp):
-    ret = 0.0
-#    print("GGG")
-    div = A*math.sin(theta)*math.sin(theta) + C*math.cos(theta)*math.cos(theta)
-#    print("GGG")
-    R2 = 0.5*A*pt*pt + 0.5*pp*pp*A*C*math.sin(theta)*math.sin(theta)/div
-#    print("GGG")    
-    R0 = -0.5*k*k/div - a*math.sin(theta)*math.sin(phi)-b*math.sin(theta)*math.cos(phi)-c*math.cos(theta)
-#    print("GGG")
-    ret = R2-R0
-    return ret
- 
 # Create initial condtions for a given h
 def CreateInitCond(r_s, h, n):
     gamma_1_ret = []
@@ -110,9 +85,6 @@ def CreateInitCond2(r_s, h, n):
         gamma_3_ret.append((h-0.5*(A*p0*p0 + B*q0*q0 + C*r0*r0))/r_s[2])
     return gamma_1_ret, gamma_2_ret, gamma_3_ret
 
-def TransIntoGamma(phi, theta):
-    return -math.sin(theta)*math.sin(phi), -math.sin(theta)*math.cos(phi), -math.cos(theta)
-
 # (x,y,z) -> (xi, eta)
 def StereographicProj(x, y, z):
     xi=[]
@@ -121,33 +93,6 @@ def StereographicProj(x, y, z):
         xi.append(2.0*x[i]/(1.0-z[i]))
         eta.append(2.0*y[i]/(1.0-z[i]))
     return xi, eta
-
-def vec(var,t):
-    theta = var[0]
-    pt = var[1]
-    phi = var[2]
-    pp = var[3]
-    
-    vec1 = pt
-    vec3 = pp
-    
-    div = A*math.sin(theta)*math.sin(theta) + C*math.cos(theta)*math.cos(theta)
-    
-    vec2_part1 = -(k - C*pp*math.cos(theta))*C*pp*math.sin(theta)/div
-    vec2_part2 = (A-C)*math.sin(theta)*math.cos(theta)*(k - C*pp*math.cos(theta))*(k - C*pp*math.cos(theta))/div/div
-    vec2_part3 = -a*math.cos(theta)*math.sin(phi)-b*math.cos(theta)*math.cos(phi)+c*math.sin(theta)
-    vec2 = (vec2_part1 + vec2_part2 + vec2_part3)/A
-    
-    div2 = (C - C*C*math.cos(theta)*math.cos(theta)/div)   
-    
-    vec4_part1 = -(2*C*C*pp*pt*math.sin(theta)*math.cos(theta)-C*k*pt*math.sin(theta))/div
-    vec4_part2 =2.0*pt*(k-C*pp*math.cos(theta))*C*math.cos(theta)
-    vec4_part2 = vec4_part2*(A-C)*math.sin(theta)*math.cos(theta)/div/div
-    vec4_part3 = -a*math.sin(theta)*math.cos(phi)+b*math.sin(theta)*math.sin(phi)
-
-    vec4 = (vec4_part1 + vec4_part2 + vec4_part3)/div2
-    
-    return vec1, vec2, vec3, vec4
 
 def f(var, t):
     p = var[0]
@@ -168,6 +113,7 @@ def CreateBoundary(x, h_in):
         x_ret = []
         y_ret = []
         h=-1.0*h_in
+        print(h)
         for q in x:
             if (h - 3.0/2.0*q*q > 0):
                 if(1/(h-3.0/2.0*q*q)**2-q**2 > 0):
@@ -202,105 +148,25 @@ def CreateBoundaryNew(h, n):
 
 r_s = [a, b, c]
 
-print("+++")
-
 theta = []
 phi = numpy.linspace(0,2*math.pi,200)
 
-
 for i in range(len(phi)):
-    theta.append(SolveEq(phi[i], 0.0, math.pi, TotEnerg))
-
-#print(CalcEn(theta[50], 0.0, phi[50], 0.0))
-#print("AAA")
-
-fig = plt.figure(figsize=(7, 5))
-plt.axis('equal')
-
-out1 = []
-out2 = []
-out3 = []
-
-for i in range(len(phi)):
-    g_ret = TransIntoGamma(phi[i], theta[i])
-    out1.append(g_ret[0])
-    out2.append(g_ret[1])
-    out3.append(g_ret[2])
-    
-xi, eta = StereographicProj(out1, out2, out3)
-
-plx = []
-ply = []
-
-for j in range(len(theta)):    
-    init = theta[j], 0.0, phi[j], 0.0
-    t = numpy.linspace(0,TotalTime,TotalTimeSteps)
-    sol = odeint(vec, init, t)
-    x_out = []
-    y_out = []
-    x_out = sol[:,0]
-    px_out = sol[:,1]
-    y_out = sol[:,2]
-    py_out = sol[:,3]
-    dpsi = dPsi(py_out[1000],x_out[1000])
-    #(dPhi, dPsi, dTheta, Phi, Theta):
-    Omega = pqr(py_out[1000], dpsi, px_out[1000], y_out[1000], x_out[1000])    
-    myGam = TransIntoGamma(y_out[1000], x_out[1000])
-    myI = Integrals(Omega[0], Omega[1], Omega[2], myGam[0], myGam[1], myGam[2])
-    print(VLevels(x_out[1000], y_out[1000]), x_out[0], x_out[100], x_out[1000])    
-    plx.append(j)
-    ply.append(myI[4])
-    out1a = []
-    out2a = []
-    out3a = []
-    for i in range(len(x_out)):
-        g_ret = TransIntoGamma(y_out[i], x_out[i])
-        out1a.append(g_ret[0])
-        out2a.append(g_ret[1])
-        out3a.append(g_ret[2])
-    
-    xi_out = []
-    eta_out = []
-    xi_out, eta_out = StereographicProj(out1a, out2a, out3a)   
-    plt.plot(xi_out, eta_out, marker='', linestyle='-', color='r')   
-
-plt.plot(xi, eta, marker='', linestyle='-', color='r')
-
-#plt.plot(plx, ply, marker='', linestyle='-', color='r')
-plt.show()
-
-sys.exit(0)
+    theta.append(SolveEq(phi[i], 0.5*math.pi, math.pi, TotEnerg))
 
 
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-V = numpy.zeros((len(phi), len(theta)))
-for i in range(len(theta)):
-    for j in range(len(phi)):
-        V[j][i] = (VLevels(theta[i], phi[j]))
-
-
-
-plt.figure()
-CS = plt.contourf(theta, phi, V, 100)
-plt.show()
-
-
-sys.exit(0)
 
 gamma_12, gamma_22, gamma_32 = CreateInitCond(r_s, TotEnerg, SolNum)
+
+gamma_12 = []
+gamma_22 = []
+gamma_32 = []
+
+for i in range(len(phi)):
+    gamma_12.append(math.sin(theta[i])*math.sin(phi[i]))
+    gamma_22.append(math.sin(theta[i])*math.cos(phi[i]))
+    gamma_32.append(math.cos(theta[i]))
+
 gamma_1, gamma_2, gamma_3 = CreateInitCond2(r_s, TotEnerg, SolNum)
 xi, eta = StereographicProj(gamma_12, gamma_22, gamma_32)
 
@@ -308,7 +174,11 @@ fig = plt.figure(figsize=(7, 5))
 plt.axis('equal')
 t = numpy.linspace(0,TotalTime,TotalTimeSteps)
 #init = 0.0, 0.0, 0.0, gamma_1[0], gamma_2[0], gamma_3[0]
-init = p0, q0, r0, gamma_1[5], gamma_2[5], gamma_3[5]
+#init = p0, q0, r0, gamma_1[5], gamma_2[5], gamma_3[5]
+
+phi0 = k/(A*math.sin(theta[5])*math.sin(theta[5]) + C*math.cos(theta[5])*math.cos(theta[5]))
+
+init = phi0*math.sin(theta[5])*math.sin(phi[5]), phi0*math.sin(theta[5])*math.cos(phi[5]), phi0*math.cos(theta[5]), math.sin(theta[5])*math.sin(phi[5]), math.sin(theta[5])*math.cos(phi[5]), math.cos(theta[5])
 sol = odeint(f, init, t)
 
 x_out = []
