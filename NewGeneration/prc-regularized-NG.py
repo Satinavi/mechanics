@@ -15,11 +15,15 @@ h = -2.0
 
 ee = 0.2
 
-mu = 0.33
+mu = 0.0
 
 scale = 1.1
 
 ang_glob = []
+
+r_0 = 0.35
+
+r_1 = 0.37
 
 def CreateBoundary(x, h):
     x_ret = []
@@ -33,6 +37,36 @@ def CreateBoundary(x, h):
                 y_ret.append(-(1/(h-3.0/2.0*q*q)**2-q**2)**(0.5))
     return x_ret, y_ret
 
+def Sgm(r):
+    if(r<r_0):
+        return -1.0
+    if(r>r_1):
+        return 0.0
+    if( r>=r_0 and r<=r_1 ):
+        return -(1.0 - (6*((r-r_0)/(r_1-r_0))**5-15*((r-r_0)/(r_1-r_0))**4+10*((r-r_0)/(r_1-r_0))**3))
+
+def DSgmDr(r):
+    if(r<r_0):
+        return 0.0
+    if(r>r_1):
+        return 0.0
+    if( r>=r_0 and r<=r_1 ):
+        return (30*((r-r_0)/(r_1-r_0))**4-60*((r-r_0)/(r_1-r_0))**3+30*((r-r_0)/(r_1-r_0))**2) 
+
+def DrhoDxi(xi, eta):
+    return 4*xi*Sgm(xi**2+eta**2) + 4*(xi**2+eta**2)*DSgmDr(xi**2+eta**2)*xi
+    
+def DrhoDeta(xi, eta):
+    return 4*eta*Sgm(xi**2+eta**2) + 4*(xi**2+eta**2)*DSgmDr(xi**2+eta**2)*eta
+
+def RhoFun(xi, eta):
+    return 2*(xi**2+eta**2)*Sgm(xi**2+eta**2)
+    
+def LagrXi(xi, Dxi, eta, Deta):
+    return 2*Deta*RhoFun(xi,eta)+eta*(DrhoDxi(xi,eta)*Dxi + DrhoDeta(xi,eta)*Deta)-DrhoDxi(xi,eta)*(Dxi*eta-Deta*xi)
+
+def LagrEta(xi, Dxi, eta, Deta):
+    return -2*Dxi*RhoFun(xi,eta)-xi*(DrhoDxi(xi,eta)*Dxi + DrhoDeta(xi,eta)*Deta)-DrhoDeta(xi,eta)*(Dxi*eta-Deta*xi)
 
         
 def SolveCubic(a,b):
@@ -100,13 +134,17 @@ def f(var, t):
     py = var[4]
     f0 = 4*(xi*xi+eta*eta)
     f1 = px
-    f2 = 8*(xi*xi+eta*eta)*py + 8.0*h*xi + 8.0*mu*xi*(4.0*eta**2*xi**2 + (-eta**2 + xi**2 - 1)**2)**(-0.5) + mu*(4.0*eta**2 + 4.0*xi**2)*(-4.0*eta**2*xi - 2.0*xi*(-eta**2 + xi**2 - 1))*(4.0*eta**2*xi**2 + (-eta**2 + xi**2 - 1)**2)**(-1.5) + 4.0*xi*(4.0*eta**2*xi**2 + (-eta**2 - mu + xi**2)**2) + (2.0*eta**2 + 2.0*xi**2)*(8.0*eta**2*xi + 4*xi*(-eta**2 - mu + xi**2))
+    f2 = -LagrXi(xi, px,eta,py) + 8.0*h*xi + 8.0*mu*xi*(4.0*eta**2*xi**2 + (-eta**2 + xi**2 - 1)**2)**(-0.5) + mu*(4.0*eta**2 + 4.0*xi**2)*(-4.0*eta**2*xi - 2.0*xi*(-eta**2 + xi**2 - 1))*(4.0*eta**2*xi**2 + (-eta**2 + xi**2 - 1)**2)**(-1.5) + 4.0*xi*(4.0*eta**2*xi**2 + (-eta**2 - mu + xi**2)**2) + (2.0*eta**2 + 2.0*xi**2)*(8.0*eta**2*xi + 4*xi*(-eta**2 - mu + xi**2))
     f3 = py
-    f4 = -8*(xi*xi+eta*eta)*px+ 8.0*eta*h + 8.0*eta*mu*(4.0*eta**2*xi**2 + (-eta**2 + xi**2 - 1)**2)**(-0.5) + 4.0*eta*(4.0*eta**2*xi**2 + (-eta**2 - mu + xi**2)**2) + mu*(4.0*eta**2 + 4.0*xi**2)*(-4.0*eta*xi**2 + 2.0*eta*(-eta**2 + xi**2 - 1))*(4.0*eta**2*xi**2 + (-eta**2 + xi**2 - 1)**2)**(-1.5) + (2.0*eta**2 + 2.0*xi**2)*(8.0*eta*xi**2 - 4*eta*(-eta**2 - mu + xi**2))
+    f4 = -LagrEta(xi, px,eta,py)+ 8.0*eta*h + 8.0*eta*mu*(4.0*eta**2*xi**2 + (-eta**2 + xi**2 - 1)**2)**(-0.5) + 4.0*eta*(4.0*eta**2*xi**2 + (-eta**2 - mu + xi**2)**2) + mu*(4.0*eta**2 + 4.0*xi**2)*(-4.0*eta*xi**2 + 2.0*eta*(-eta**2 + xi**2 - 1))*(4.0*eta**2*xi**2 + (-eta**2 + xi**2 - 1)**2)**(-1.5) + (2.0*eta**2 + 2.0*xi**2)*(8.0*eta*xi**2 - 4*eta*(-eta**2 - mu + xi**2))
     return f0, f1, f2, f3, f4
 
+
 def TestFun(xi,px,eta,py):
-    return -8*(xi*xi+eta*eta)*px 
+    return -LagrEta(xi, px,eta,py) 
+
+def f_mod(var, t):
+    return 0
 
 
 def Df(s, var):
@@ -170,10 +208,16 @@ def TotEnergy(px, py, x, y):
     V = (x**2 + y**2)*0.5 + (1-mu)/((x+mu)**2+y**2)**0.5+(mu)/((x-1+mu)**2+y**2)**0.5
     return T-V
 
+
+
 print("HELLO!")
-TotalTimeSteps = 10000.0
-TotalTime = 1.0
-MaxNumberOfMoons = 30.0
+TotalTimeSteps = 100000.0
+TotalTime = 5
+MaxNumberOfMoons = 100.0
+
+print(TestFun(1,7,3,4))
+
+#sys.exit(0)
 
 #delta = 0.033
 #x = np.arange(-2.0, 2.0, delta)
@@ -192,10 +236,6 @@ MaxNumberOfMoons = 30.0
 
 
 print("HELLO!")
-
-print(TestFun(1,7,3,4))
-
-#sys.exit(0)
 
 x_plot_temp, y_plot_temp = CreateAngleBoundary(MaxNumberOfMoons, 0.0, 0.001, 0.05)
 
@@ -225,7 +265,7 @@ for j in range(len(x_plot_temp)):
     print(j, len(x_plot_temp))
     init = 0.0, xi_plot_temp[j], 0.0, eta_plot_temp[j], 0.0
     t = numpy.linspace(0,TotalTime,TotalTimeSteps)
-    sol = odeint(f, init, t)
+    sol = odeint(f, init, t, atol = 5.0e-14, rtol = 5.0e-14)
     xi_out = sol[:,1]
     eta_out = sol[:,3]
     print(NewEnergy(sol[TotalTimeSteps-5,1], sol[TotalTimeSteps-5,2], sol[TotalTimeSteps-5,3], sol[TotalTimeSteps-5,4]))

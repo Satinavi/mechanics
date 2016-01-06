@@ -11,11 +11,11 @@ import math
 import time
 
 #lobal parameters are here
-h = -2.0
+h = -2
 
 ee = 0.2
 
-mu = 0.33
+mu = 0.0
 
 scale = 1.1
 
@@ -105,8 +105,6 @@ def f(var, t):
     f4 = -8*(xi*xi+eta*eta)*px+ 8.0*eta*h + 8.0*eta*mu*(4.0*eta**2*xi**2 + (-eta**2 + xi**2 - 1)**2)**(-0.5) + 4.0*eta*(4.0*eta**2*xi**2 + (-eta**2 - mu + xi**2)**2) + mu*(4.0*eta**2 + 4.0*xi**2)*(-4.0*eta*xi**2 + 2.0*eta*(-eta**2 + xi**2 - 1))*(4.0*eta**2*xi**2 + (-eta**2 + xi**2 - 1)**2)**(-1.5) + (2.0*eta**2 + 2.0*xi**2)*(8.0*eta*xi**2 - 4*eta*(-eta**2 - mu + xi**2))
     return f0, f1, f2, f3, f4
 
-def TestFun(xi,px,eta,py):
-    return -8*(xi*xi+eta*eta)*px 
 
 
 def Df(s, var):
@@ -170,10 +168,43 @@ def TotEnergy(px, py, x, y):
     V = (x**2 + y**2)*0.5 + (1-mu)/((x+mu)**2+y**2)**0.5+(mu)/((x-1+mu)**2+y**2)**0.5
     return T-V
 
+
+def L0(x,y):
+    return 0.5*(x**2 + y**2) + (1-mu)/((x+mu)**2+y**2)**0.5 + mu/((x-1+mu)**2+y**2)**0.5
+
+def L1(x,y, px, py):
+    return x*py - y*px
+
+def L2(px,py):
+    return 0.5*(px**2+py**2)
+
+def FindBhPlus(xBh, yBh, NN):
+    MM = 10
+    retX = []
+    retY = []
+    for iii in range(len(xBh)):
+        xx = xBh[iii]
+        yy0 = yBh[iii]
+        for jjj in range(NN):
+            addPoint = True
+            yy = yy0 + jjj*(-2*yy0/NN)
+            for kkk in range(MM):
+                nu = kkk*math.pi*2/MM
+                l1 = L1(xx,yy,math.cos(nu),math.sin(nu))
+                l0 = L0(xx,yy)
+                l2 = L2(math.cos(nu),math.sin(nu))
+                if(4*(l0+h)*l2<=l1*l1):
+                    addPoint = False
+            if(addPoint):
+                retX.append(xx)
+                retY.append(yy)
+    return retX, retY
+            
+
 print("HELLO!")
 TotalTimeSteps = 10000.0
-TotalTime = 1.0
-MaxNumberOfMoons = 30.0
+TotalTime = 0.33
+MaxNumberOfMoons = 800.0
 
 #delta = 0.033
 #x = np.arange(-2.0, 2.0, delta)
@@ -193,19 +224,21 @@ MaxNumberOfMoons = 30.0
 
 print("HELLO!")
 
-print(TestFun(1,7,3,4))
-
-#sys.exit(0)
-
 x_plot_temp, y_plot_temp = CreateAngleBoundary(MaxNumberOfMoons, 0.0, 0.001, 0.05)
+
+
+BhX, BhY = FindBhPlus(x_plot_temp, y_plot_temp, 1000)
+
+
+
 
 xi_plot_temp = []
 eta_plot_temp = []
 
-for j in range(len(x_plot_temp)):
-    xe = InvTrans(x_plot_temp[j], y_plot_temp[j])
-    xi_plot_temp.append(xe[0])
-    eta_plot_temp.append(xe[1])
+#for j in range(len(x_plot_temp)):
+#    xe = InvTrans(x_plot_temp[j], y_plot_temp[j])
+#    xi_plot_temp.append(xe[0])
+#    eta_plot_temp.append(xe[1])
 
 fig = plt.figure(figsize=(7, 5))
 
@@ -214,6 +247,8 @@ plt.axis('equal')
 fig.tight_layout()
 
 plt.scatter(x_plot_temp,y_plot_temp, s=5, facecolors='red', edgecolors='none', alpha=1)
+
+plt.scatter(BhX,BhY, s=5, facecolors='navy', edgecolors='none', alpha=1)
 
 fff = InvTrans(0.123, -0.7)
 

@@ -11,8 +11,8 @@ import math
 import time
 
 #lobal parameters are here
-r_0 = 1.01
-omega=0.7
+r_00 = 0.9
+omega=1.0
 kappa = 1.0
 
 h = -2.0
@@ -24,6 +24,10 @@ mu = 0.33
 scale = 1.1
 
 ang_glob = []
+
+r_0 = 1.6
+
+r_1 = 1.65
 
 #def Beta(r):
 #    if(r<=1):
@@ -58,6 +62,24 @@ def DBetaDr(r):
     if(r>1):
         return 0.0
 
+
+def Sgm(r):
+    if(r<r_0):
+        return -1.0
+    if(r>r_1):
+        return 0.0
+    if( r>=r_0 and r<=r_1 ):
+        return -(1.0 - (6*((r-r_0)/(r_1-r_0))**5-15*((r-r_0)/(r_1-r_0))**4+10*((r-r_0)/(r_1-r_0))**3))
+
+def DSgmDr(r):
+    if(r<r_0):
+        return 0.0
+    if(r>r_1):
+        return 0.0
+    if( r>=r_0 and r<=r_1 ):
+        return (30*((r-r_0)/(r_1-r_0))**4-60*((r-r_0)/(r_1-r_0))**3+30*((r-r_0)/(r_1-r_0))**2) 
+
+
 def CreateBoundary(N):
     r_ret = []
     phi_ret = []
@@ -74,16 +96,31 @@ def ConvertToXY(r_in, phi_in):
         y_out.append(r_in[i]*math.sin(phi_in[i]))
     return x_out, y_out
 
-def f2(var, t):
+#def f2(var, t):
+#    r = var[0]
+#    dr = var[1]
+#    beta0 = Beta(r_0)
+#    f1 = dr
+#    f2 = (r*Beta(r)*Beta(r)+beta0**2*r_0**4/r**3 - 2*Beta(r)*beta0*r_0**2/r)+r-1/r + (-Beta(r)+beta0*r_0**2/r**2)*(2*r*Beta(r)+r**2*DBetaDr(r))
+#    return f1, f2
+
+def f22(var, t):
     r = var[0]
     dr = var[1]
-    beta0 = Beta(r_0)
+    sgm0 = Sgm(r_00)
     f1 = dr
-    f2 = (r*Beta(r)*Beta(r)+beta0**2*r_0**4/r**3 - 2*Beta(r)*beta0*r_0**2/r)-r + (-Beta(r)+beta0*r_0**2/r**2)*(2*r*Beta(r)+r**2*DBetaDr(r))
+    f2 = (r*Sgm(r)*Sgm(r)+sgm0**2*r_00**4/r**3 - 2*Sgm(r)*sgm0*r_0**2/r)+r-1/r/r + (-Sgm(r)+sgm0*r_00**2/r**2)*(2*r*Sgm(r)+r**2*DSgmDr(r))
     return f1, f2
 
+def f33(var, t):
+    r = var[0]
+    dr = var[1]
+    sgm0 = Sgm(r_00)
+    f1 = dr
+    f2 = r*Sgm(r)*Sgm(r)+r-r**2*Sgm(r)*DSgmDr(r)-2*r*Sgm(r)*Sgm(r)-1/r/r
+    return f1, f2
 
-def f1(var, t):
+def f11(var, t):
     r = var[0]
     dr = var[1]
     f1 = dr
@@ -106,27 +143,27 @@ def f(var, t):
 
 print("HELLO!")
 TotalTimeSteps = 100000.0
-TotalTime = 10
+TotalTime = 5
 MaxNumberOfMoons = 10.0
 
 
-fig = plt.figure(figsize=(7, 5))
+#fig = plt.figure(figsize=(7, 5))
 
-plt.axis('equal')
-
-fig.tight_layout()
-
-r = numpy.linspace(-1.0,2.0,TotalTimeSteps)
-fr = []
-
-for j in range(len(r)):
-    fr.append(Beta(r[j]))
-
-plt.plot(r, fr, marker='', linestyle='-', color='r',linewidth=3)  
-
-plt.show()
+#plt.axis('equal')
 #
-sys.exit(0)
+#fig.tight_layout()
+#
+#r = numpy.linspace(-1.0,2.0,TotalTimeSteps)
+#fr = []
+#
+#for j in range(len(r)):
+#    fr.append(Beta(r[j]))
+#
+#plt.plot(r, fr, marker='', linestyle='-', color='r',linewidth=3)  
+#
+#plt.show()
+##
+#sys.exit(0)
 #
 #
 #print((r[j]*Beta(r[j])*Beta(r[j])+beta0**2*r_0**4/r[j]**3 - 2*Beta(r[j])*beta0*r_0**2/r[j])-r[j] + (-Beta(r[j])+beta0*r_0**2/r[j]**2)*(2*r[j]*Beta(r[j])+r[j]**2*DBetaDr(r[j])))
@@ -165,11 +202,11 @@ plt.axis('equal')
 fig.tight_layout()
 
 
-init = r_0, 0.0
+init = r_00, 0.0
 
 t = numpy.linspace(0,TotalTime,TotalTimeSteps)
 
-sol = odeint(f2, init, t)
+sol = odeint(f22, init, t,atol=1.0e-13, rtol=1.0e-13)
 r_out = sol[:,0]
 dr_out = sol[:,1] 
 plt.plot(r_out, dr_out, marker='', linestyle='-', color='r')  
